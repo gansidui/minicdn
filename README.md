@@ -76,7 +76,7 @@ Manager与Peer是一对多的关系
 
 源站的所有下载地址，最好都改成这个 `http://localhost:5000/something`
 
-### Run Slave
+### Run Peer
 命令行启动
 
 ```shell

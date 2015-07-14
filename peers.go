@@ -26,41 +26,41 @@ var (
 		ActiveDownload: 0,
 		Closed:         false,
 	}
-	slaveMap = SlaveMap{
-		m: make(map[string]Slave, 10),
+	peerGroup = PeerGroup{
+		m: make(map[string]Peer, 10),
 	}
 
 	pool     *groupcache.HTTPPool
 	wsclient *websocket.Conn
 )
 
-type Slave struct {
+type Peer struct {
 	Name           string
 	Connection     *websocket.Conn
 	ActiveDownload int
 }
 
-type SlaveMap struct {
+type PeerGroup struct {
 	sync.RWMutex
-	m map[string]Slave
+	m map[string]Peer
 }
 
-func (sm *SlaveMap) AddSlave(name string, conn *websocket.Conn) {
+func (sm *PeerGroup) AddPeer(name string, conn *websocket.Conn) {
 	sm.Lock()
 	defer sm.Unlock()
-	sm.m[name] = Slave{
+	sm.m[name] = Peer{
 		Name:       name,
 		Connection: conn,
 	}
 }
 
-func (sm *SlaveMap) Delete(name string) {
+func (sm *PeerGroup) Delete(name string) {
 	sm.Lock()
 	delete(sm.m, name)
 	sm.Unlock()
 }
 
-func (sm *SlaveMap) Keys() []string {
+func (sm *PeerGroup) Keys() []string {
 	sm.RLock()
 	defer sm.RUnlock()
 	keys := []string{}
@@ -70,7 +70,7 @@ func (sm *SlaveMap) Keys() []string {
 	return keys
 }
 
-func (sm *SlaveMap) PeekSlave() (string, error) {
+func (sm *PeerGroup) PeekPeer() (string, error) {
 	// FIXME(ssx): need to order by active download count
 	sm.RLock()
 	defer sm.RUnlock()
@@ -80,12 +80,12 @@ func (sm *SlaveMap) PeekSlave() (string, error) {
 		keys = append(keys, key)
 	}
 	if len(keys) == 0 {
-		return "", errors.New("Slave count zero")
+		return "", errors.New("Peer count zero")
 	}
 	return keys[ridx%len(keys)], nil
 }
 
-func (sm *SlaveMap) BroadcastJSON(v interface{}) error {
+func (sm *PeerGroup) BroadcastJSON(v interface{}) error {
 	var err error
 	for _, s := range sm.m {
 		if err = s.Connection.WriteJSON(v); err != nil {
@@ -119,7 +119,7 @@ func (s *ServerState) Close() error {
 	return nil
 }
 
-func InitSlave() (err error) {
+func InitPeer() (err error) {
 	u, err := url.Parse(*upstream)
 	if err != nil {
 		return
@@ -167,7 +167,7 @@ func InitSlave() (err error) {
 			if err != nil {
 				log.Println("Connection to master closed, retry in 10 seconds")
 				time.Sleep(time.Second * 10)
-				InitSlave()
+				InitPeer()
 				break
 			}
 			action := msg["action"]
@@ -210,41 +210,41 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 		switch msg["action"] {
 		case "LOGIN":
 			name = "http://" + remoteHost + ":" + msg["port"]
-			currKeys := slaveMap.Keys()
-			slaveMap.AddSlave(name, conn)
+			currKeys := peerGroup.Keys()
+			peerGroup.AddPeer(name, conn)
 			err = conn.WriteJSON(map[string]string{
 				"self":   name,
-				"peers":  strings.Join(slaveMap.Keys(), ","),
+				"peers":  strings.Join(peerGroup.Keys(), ","),
 				"mirror": *mirror,
 			})
 
-			slaveMap.RLock()
+			peerGroup.RLock()
 			for _, key := range currKeys {
-				if s, exists := slaveMap.m[key]; exists {
+				if s, exists := peerGroup.m[key]; exists {
 					s.Connection.WriteJSON(map[string]string{
 						"action": "PEER_UPDATE",
-						"peers":  strings.Join(slaveMap.Keys(), ","),
+						"peers":  strings.Join(peerGroup.Keys(), ","),
 					})
 				}
 			}
-			slaveMap.RUnlock()
-			log.Printf("Slave: %s JOIN", name)
+			peerGroup.RUnlock()
+			log.Printf("Peer: %s JOIN", name)
 		}
 		if err != nil {
 			break
 		}
 	}
 
-	slaveMap.Delete(name)
-	slaveMap.RLock()
-	for _, key := range slaveMap.Keys() {
-		if s, exists := slaveMap.m[key]; exists {
+	peerGroup.Delete(name)
+	peerGroup.RLock()
+	for _, key := range peerGroup.Keys() {
+		if s, exists := peerGroup.m[key]; exists {
 			s.Connection.WriteJSON(map[string]string{
 				"action": "PEER_UPDATE",
-				"peers":  strings.Join(slaveMap.Keys(), ","),
+				"peers":  strings.Join(peerGroup.Keys(), ","),
 			})
 		}
 	}
-	slaveMap.RUnlock()
-	log.Printf("Slave: %s QUIT", name)
+	peerGroup.RUnlock()
+	log.Printf("Peer: %s QUIT", name)
 }

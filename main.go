@@ -46,8 +46,8 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 	defer state.addActiveDownload(-1)
 
 	if *upstream == "" { // Master
-		if slaveAddr, err := slaveMap.PeekSlave(); err == nil {
-			u, _ := url.Parse(slaveAddr)
+		if peerAddr, err := peerGroup.PeekPeer(); err == nil {
+			u, _ := url.Parse(peerAddr)
 			u.Path = r.URL.Path
 			u.RawQuery = r.URL.RawQuery
 			http.Redirect(w, r, u.String(), 302)
@@ -73,7 +73,7 @@ var (
 	logfile  = flag.String("log", "-", "Set log file, default STDOUT")
 	upstream = flag.String("upstream", "", "Server base URL, conflict with -mirror")
 	address  = flag.String("addr", ":5000", "Listen address")
-	token    = flag.String("token", "1234567890ABCDEFG", "slave and master token should be same")
+	token    = flag.String("token", "1234567890ABCDEFG", "peer and master token should be same")
 )
 
 func InitSignal() {
@@ -106,7 +106,7 @@ func main() {
 		log.Fatal("Must set one of -mirror and -upstream")
 	}
 	if *upstream != "" {
-		if err := InitSlave(); err != nil {
+		if err := InitPeer(); err != nil {
 			log.Fatal(err)
 		}
 	}
