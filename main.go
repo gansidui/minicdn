@@ -54,13 +54,18 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	fmt.Println("KEY:", key)
+	//fmt.Println("KEY:", key)
 	var data []byte
 	var ctx groupcache.Context
 	err := thumbNails.Get(ctx, key, groupcache.AllocatingByteSliceSink(&data))
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
+	}
+	sendc <- map[string]interface{}{
+		"remote_addr": r.RemoteAddr,
+		"key":         key,
+		"success":     err == nil,
 	}
 	var modTime time.Time = time.Now()
 

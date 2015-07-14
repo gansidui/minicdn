@@ -99,7 +99,9 @@ func (s *ServerState) addActiveDownload(n int) {
 
 func (s *ServerState) Close() error {
 	s.closed = true
-	wsclient.Close()
+	if wsclient != nil {
+		wsclient.Close()
+	}
 	time.Sleep(time.Millisecond * 500) // 0.5s
 	for {
 		if s.ActiveDownload == 0 { // Wait until all download finished

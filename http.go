@@ -19,6 +19,7 @@ var (
 		WriteBufferSize: 1024,
 	}
 	wsclient *websocket.Conn
+	sendc    = make(chan map[string]interface{}, 10)
 )
 
 func InitMaster() (err error) {
@@ -27,6 +28,13 @@ func InitMaster() (err error) {
 }
 
 func WSHandler(w http.ResponseWriter, r *http.Request) {
+	/*
+		defer func() {
+			if e := recover(); e != nil {
+				log.Println(e)
+			}
+		}()
+	*/
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println(err)
@@ -37,17 +45,17 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 
 	var name string
 	remoteHost, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-	var msg = make(map[string]string)
 	for {
 		var err error
+		var msg = make(map[string]interface{})
 		if err = conn.ReadJSON(&msg); err != nil {
 			break
 		}
 
-		log.Println(msg)
-		switch msg["action"] {
+		action, _ := msg["action"].(string)
+		switch action {
 		case "LOGIN":
-			name = "http://" + remoteHost + ":" + msg["port"]
+			name = "http://" + remoteHost + ":" + msg["port"].(string)
 			currKeys := peerGroup.Keys()
 			peerGroup.AddPeer(name, conn)
 			err = conn.WriteJSON(map[string]string{
@@ -67,6 +75,10 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			peerGroup.RUnlock()
 			log.Printf("Peer: %s JOIN", name)
+		case "LOG":
+			log.Println("LOG:", msg)
+		default:
+			log.Println("UNKNOWN:", msg)
 		}
 		if err != nil {
 			break
@@ -136,9 +148,14 @@ func InitPeer() (err error) {
 				if state.IsClosed() {
 					break
 				}
-				log.Println("Connection to master closed, retry in 10 seconds")
-				time.Sleep(time.Second * 10)
-				InitPeer()
+				log.Println("Connection to master closed !!!")
+				for {
+					log.Println("> retry in 5 seconds")
+					time.Sleep(time.Second * 5)
+					if err := InitPeer(); err == nil {
+						break
+					}
+				}
 				break
 			}
 			action := msg["action"]
@@ -147,6 +164,21 @@ func InitPeer() (err error) {
 				peers := strings.Split(msg["peers"], ",")
 				log.Println("Update peer list:", peers)
 				pool.Set(peers...)
+			}
+		}
+	}()
+
+	// send queue
+	go func() {
+		for msg := range sendc {
+			log.Println("Send msg:", msg)
+			if msg["action"] == nil {
+				msg["action"] = "LOG"
+			}
+			err := wsclient.WriteJSON(msg)
+			if err != nil {
+				log.Println("Send queue err:", err)
+				break
 			}
 		}
 	}()
