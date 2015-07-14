@@ -83,7 +83,7 @@ func InitSignal() {
 		for {
 			s := <-sig
 			fmt.Println("Got signal:", s)
-			if state.Closed {
+			if state.IsClosed() {
 				fmt.Println("Cold close !!!")
 				os.Exit(1)
 			}

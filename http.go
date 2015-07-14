@@ -133,6 +133,9 @@ func InitPeer() (err error) {
 		for {
 			err := wsclient.ReadJSON(&msg)
 			if err != nil {
+				if state.IsClosed() {
+					break
+				}
 				log.Println("Connection to master closed, retry in 10 seconds")
 				time.Sleep(time.Second * 10)
 				InitPeer()

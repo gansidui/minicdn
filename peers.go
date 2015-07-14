@@ -15,7 +15,7 @@ const defaultWSURL = "/_ws/"
 var (
 	state = ServerState{
 		ActiveDownload: 0,
-		Closed:         false,
+		closed:         false,
 	}
 	peerGroup = PeerGroup{
 		m: make(map[string]Peer, 10),
@@ -88,7 +88,7 @@ func (sm *PeerGroup) BroadcastJSON(v interface{}) error {
 type ServerState struct {
 	sync.Mutex
 	ActiveDownload int
-	Closed         bool
+	closed         bool
 }
 
 func (s *ServerState) addActiveDownload(n int) {
@@ -98,7 +98,8 @@ func (s *ServerState) addActiveDownload(n int) {
 }
 
 func (s *ServerState) Close() error {
-	s.Closed = true
+	s.closed = true
+	wsclient.Close()
 	time.Sleep(time.Millisecond * 500) // 0.5s
 	for {
 		if s.ActiveDownload == 0 { // Wait until all download finished
@@ -107,4 +108,8 @@ func (s *ServerState) Close() error {
 		time.Sleep(time.Millisecond * 100)
 	}
 	return nil
+}
+
+func (s *ServerState) IsClosed() bool {
+	return s.closed
 }
