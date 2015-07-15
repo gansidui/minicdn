@@ -17,16 +17,19 @@ import (
 	"github.com/codeskyblue/groupcache"
 )
 
-var thumbNails = groupcache.NewGroup("thumbnail", 512<<20, groupcache.GetterFunc(
-	func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
-		fileName := key
-		bytes, err := generateThumbnail(fileName)
-		if err != nil {
-			return err
-		}
-		dest.SetBytes(bytes)
-		return nil
-	}))
+var (
+	cdnlog     *log.Logger
+	thumbNails = groupcache.NewGroup("thumbnail", 512<<20, groupcache.GetterFunc(
+		func(ctx groupcache.Context, key string, dest groupcache.Sink) error {
+			fileName := key
+			bytes, err := generateThumbnail(fileName)
+			if err != nil {
+				return err
+			}
+			dest.SetBytes(bytes)
+			return nil
+		}))
+)
 
 func generateThumbnail(key string) ([]byte, error) {
 	u, _ := url.Parse(*mirror)
@@ -66,6 +69,8 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 		"remote_addr": r.RemoteAddr,
 		"key":         key,
 		"success":     err == nil,
+		"header_data": r.Header.Get("X-Minicdn-Data"),
+		"user_agent":  r.Header.Get("User-Agent"),
 	}
 	var modTime time.Time = time.Now()
 
@@ -109,6 +114,16 @@ func main() {
 	}
 	if *mirror == "" && *upstream == "" {
 		log.Fatal("Must set one of -mirror and -upstream")
+	}
+
+	if *logfile == "-" && *logfile == "" {
+		cdnlog = log.New(os.Stdout, "", 0)
+	} else {
+		fd, err := os.OpenFile(*logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cdnlog = log.New(fd, "", 0)
 	}
 	if *upstream != "" {
 		if err := InitPeer(); err != nil {

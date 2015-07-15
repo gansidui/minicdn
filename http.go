@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net"
@@ -77,6 +78,12 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Peer: %s JOIN", name)
 		case "LOG":
 			log.Println("LOG:", msg)
+			msgb, _ := json.Marshal(map[string]interface{}{
+				"timestamp": time.Now().Unix(),
+				"data":      msg,
+				"peer":      name,
+			})
+			cdnlog.Println(string(msgb))
 		default:
 			log.Println("UNKNOWN:", msg)
 		}
