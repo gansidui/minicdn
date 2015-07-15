@@ -1,4 +1,6 @@
 ## MiniCDN
+[![wercker status](https://app.wercker.com/status/38fd3ae3b11c17b6163966f06eb7a8be/m "wercker status")](https://app.wercker.com/project/bykey/38fd3ae3b11c17b6163966f06eb7a8be)
+
 一般来说会推荐采用qiniu或者upyun,又或者是amazon之类大公司的cdn服务，不过当需要一些自己实现的场景，比如企业内部软件的加速，就需要一个私有的CDN了。
 
 极简内容分发系统是我在公司里面的一个项目，最近把他开源出来了。可能其他企业或者组织也需要一个类似的东西。
@@ -34,13 +36,6 @@ groupcache是2013年写出来的，软件也不怎么更新了。里面的HTTPPo
 
 受python-celery的启发，我实现了peer退出时候的两种状态(Warm close and Code close). Warn close可以保证党节点不在服务的时候才退出。Code close就是强制退出，下载者可能会发现下载中断的问题。
 
-## 编译方法
-```go
-go get -u -v github.com/codeskyblue/minicdn
-# run
-minicdn -h
-```
-
 ## 架构
 
 * M: Manager
@@ -61,6 +56,17 @@ Manager与Peer是一对多的关系
  |       |        |
 [P]     [P]      [P]  ....
 ```
+
+## Installation
+```go
+go get -u -v github.com/codeskyblue/minicdn
+# run
+minicdn -h
+```
+
+## Requirements
+* [golang](https://golang.org/dl/)
+* 使用golang前需要设置环境变量`GOPATH`, 通常`export GOPATH=$HOME/goworkdir`, 编译后的文件会自动生成到`$GOPATH/bin`下
 
 
 ### Run Manager
@@ -91,6 +97,18 @@ Manager与Peer是一对多的关系
 * use a slave as a master
 * request log
 * cli args to specify cache size
+
+## CONTRIBUTING
+开源软件都会有一个这部分，感觉我也不能免俗。
+
+* 代码或README中的拼写错误，都是可以提Pull request的。
+* 如果有什么大的改动，请先提issue进行讨论。
+* 代码使用golang默认的fmt
+
+## Tests
+```go
+go test -v
+```
 
 ## LICENSE
 Under [MIT LICENSE](LICENSE)
