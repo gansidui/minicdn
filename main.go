@@ -78,6 +78,14 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, filepath.Base(key), modTime, rd)
 }
 
+func LogHandler(w http.ResponseWriter, r *http.Request) {
+	if *logfile == "" || *logfile == "-" {
+		http.Error(w, "Log file not found", 404)
+		return
+	}
+	http.ServeFile(w, r, *logfile)
+}
+
 var (
 	mirror   = flag.String("mirror", "", "Mirror Web Base URL")
 	logfile  = flag.String("log", "-", "Set log file, default STDOUT")
@@ -142,6 +150,7 @@ func main() {
 	InitSignal()
 	//fmt.Println("Hello CDN")
 	http.HandleFunc("/", FileHandler)
+	http.HandleFunc("/_log", LogHandler)
 	log.Printf("Listening on %s", *address)
 	log.Fatal(http.ListenAndServe(*address, nil))
 }

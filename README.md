@@ -100,6 +100,10 @@ minicdn -h
 {"data":{"action":"LOG","header_data":"","key":"/apks/com.netease.h15/com.netease.h15-1.apk","remote_addr":"10.242.189.222:39734","success":true,"user_agent":"AndroidDownloadManager/4.4.2 (Linux; U; Android 4.4.2; SM-G9006V Build/KOT49H)"},"peer":"http://10.246.14.51:19231","timestamp":1436949324}
 ```
 
+When manager specified `-log`,
+log can view through: `http://your-manager-host/_log`
+
+
 ### TODO
 * token
 * use a slave as a master
