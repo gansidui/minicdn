@@ -1,7 +1,9 @@
 ## MiniCDN
 [![wercker status](https://app.wercker.com/status/38fd3ae3b11c17b6163966f06eb7a8be/m "wercker status")](https://app.wercker.com/project/bykey/38fd3ae3b11c17b6163966f06eb7a8be)
 
-A simple CDN, use pull method, can't handle too big files.
+A simple CDN, based on [groupcache](https://github.com/golang/groupcache).
+
+Use pull method, can't handle too big files. I limited to (512M) for now.
 
 一般来说会推荐采用qiniu或者upyun,又或者是amazon之类大公司的cdn服务，不过当需要一些自己实现的场景，比如企业内部软件的加速，就需要一个私有的CDN了。
 
