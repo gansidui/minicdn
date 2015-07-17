@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -65,13 +66,25 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	sendc <- map[string]interface{}{
+	sendData := map[string]interface{}{
 		"remote_addr": r.RemoteAddr,
 		"key":         key,
 		"success":     err == nil,
-		"header_data": r.Header.Get("X-Minicdn-Data"),
 		"user_agent":  r.Header.Get("User-Agent"),
 	}
+	headerData := r.Header.Get("X-Minicdn-Data")
+	headerType := r.Header.Get("X-Minicdn-Type")
+	if headerType == "json" {
+		var data interface{}
+		if err := json.Unmarshal([]byte(headerData), &data); err == nil {
+			sendData["header_data"] = data
+		}
+	} else {
+		sendData["header_data"] = headerData
+		sendData["header_type"] = headerType
+	}
+
+	sendc <- sendData
 	var modTime time.Time = time.Now()
 
 	rd := bytes.NewReader(data)
@@ -124,8 +137,8 @@ func main() {
 		log.Fatal("Must set one of -mirror and -upstream")
 	}
 
-	if *logfile == "-" && *logfile == "" {
-		cdnlog = log.New(os.Stdout, "", 0)
+	if *logfile == "-" || *logfile == "" {
+		cdnlog = log.New(os.Stderr, "CDNLOG: ", 0)
 	} else {
 		fd, err := os.OpenFile(*logfile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 		if err != nil {

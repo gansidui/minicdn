@@ -77,7 +77,7 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 			peerGroup.RUnlock()
 			log.Printf("Peer: %s JOIN", name)
 		case "LOG":
-			log.Println("LOG:", msg)
+			delete(msg, "ACTION")
 			msgb, _ := json.Marshal(map[string]interface{}{
 				"timestamp": time.Now().Unix(),
 				"data":      msg,

@@ -9,7 +9,7 @@
 
 MiniCDN采用的就是pull这种方式，目前的实现方式是所有缓存的文件存储在内存中，使用LRU算法淘汰掉就的文件，镜像的文件受限于缓冲区的大小（目前的缓冲区是512M），如果超过了这个缓冲器大小，就没有加速的效果了。
 
-没有所有的智能DNS,直接用的是最简单的http redirect. 还没写负载均衡, 所以redirect的时候，就是随机返回一个节点（简单粗暴)
+没有所谓的智能DNS,直接用的是最简单的http redirect. 还没写负载均衡, 所以redirect的时候，就是随机返回一个节点（简单粗暴)
 
 MiniCDN分为manager和peer。都是写在一个程序里。
 
@@ -93,6 +93,9 @@ minicdn -h
 * 监听8001端口
 
 ### Log format
+
+下载的请求的header中的两个头`X-Minicdn-Data`和`X-Minicdn-Type`两个字段，会被自动记录到后台的日志中。当`X-Minicdn-Type`设置为字符串`json`的时候，`X-Minicdn-Data`会相应的转化成json类型的数据。
+
 **example**
 
 ```
