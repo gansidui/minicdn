@@ -1,6 +1,8 @@
 ## MiniCDN
 [![wercker status](https://app.wercker.com/status/38fd3ae3b11c17b6163966f06eb7a8be/m "wercker status")](https://app.wercker.com/project/bykey/38fd3ae3b11c17b6163966f06eb7a8be)
 
+A simple CDN, use pull method, can't handle too big files.
+
 一般来说会推荐采用qiniu或者upyun,又或者是amazon之类大公司的cdn服务，不过当需要一些自己实现的场景，比如企业内部软件的加速，就需要一个私有的CDN了。
 
 极简内容分发系统是我在公司里面的一个项目，最近把他开源出来了。可能其他企业或者组织也需要一个类似的东西。
@@ -60,37 +62,38 @@ Manager与Peer是一对多的关系
 ## Installation
 ```go
 go get -u -v github.com/codeskyblue/minicdn
-# run
+
+# See help
 minicdn -h
 ```
 
 ## Requirements
-* [golang](https://golang.org/dl/)
-* 使用golang前需要设置环境变量`GOPATH`, 通常`export GOPATH=$HOME/goworkdir`, 编译后的文件会自动生成到`$GOPATH/bin`下
+* First you need golang installed. [golang](https://golang.org/dl/)
+* set env-var `GOPATH` for golang, ex: `export GOPATH=$HOME/goworkdir`, The target file will auto compile to `$GOPATH/bin`.
 
+## Usage
+minicdn contains two parts. manager and peer
 
 ### Run Manager
-命令行启动
 
 ```shell
 ./minicdn -mirror http://localhost:5000 -addr :11000 -log cdn.log
 ```
 
-* 对网站 `http://localhost:5000`进行镜像加速
-* 监听11000端口
-* 日志存储在cdn.log中
+* Speed up the mirror site: `http://localhost:5000`
+* Listen address `:11000`
+* Store log to `cdn.log`
 
-源站的所有下载地址，最好都改成这个 `http://localhost:5000/something`
+The download resource link should change to this: `http://your-cdn-host:11000/something`
 
 ### Run Peer
-命令行启动
 
 ```shell
 ./minicdn -upstream http://localhost:11000 -addr :8001
 ```
 
-* 指定Server地址 `http://localhost:11000`
-* 监听8001端口
+* Specify Manager address: `http://localhost:11000`
+* Listen address `:8001`
 
 ### Log format
 
