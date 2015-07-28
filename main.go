@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/codeskyblue/groupcache"
+	"github.com/ugorji/go/codec"
 )
 
 var (
@@ -32,6 +33,11 @@ var (
 		}))
 )
 
+type HttpResponse struct {
+	Header http.Header
+	Body   []byte
+}
+
 func generateThumbnail(key string) ([]byte, error) {
 	u, _ := url.Parse(*mirror)
 	u.Path = key
@@ -40,7 +46,14 @@ func generateThumbnail(key string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	return ioutil.ReadAll(resp.Body)
+	buf := bytes.NewBuffer(nil)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	mpenc := codec.NewEncoder(buf, &codec.MsgpackHandle{})
+	err = mpenc.Encode(HttpResponse{resp.Header, body})
+	return buf.Bytes(), err
 }
 
 func FileHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +71,7 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	//fmt.Println("KEY:", key)
+	fmt.Println("KEY:", key)
 	var data []byte
 	var ctx groupcache.Context
 	err := thumbNails.Get(ctx, key, groupcache.AllocatingByteSliceSink(&data))
@@ -66,6 +79,18 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	var hr HttpResponse
+	mpdec := codec.NewDecoder(bytes.NewReader(data), &codec.MsgpackHandle{})
+	err = mpdec.Decode(&hr)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	// FIXME(ssx): should have some better way
+	for key, _ := range hr.Header {
+		w.Header().Set(key, hr.Header.Get(key))
+	}
+
 	sendData := map[string]interface{}{
 		"remote_addr": r.RemoteAddr,
 		"key":         key,
@@ -88,10 +113,13 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 		sendData["header_type"] = headerType
 	}
 
-	sendc <- sendData
+	if *upstream != "" { // Slave
+		sendc <- sendData
+	}
+	// FIXME(ssx): ModTime should from header
 	var modTime time.Time = time.Now()
 
-	rd := bytes.NewReader(data)
+	rd := bytes.NewReader(hr.Body)
 	http.ServeContent(w, r, filepath.Base(key), modTime, rd)
 }
 
@@ -165,7 +193,6 @@ func main() {
 	}
 
 	InitSignal()
-	//fmt.Println("Hello CDN")
 	http.HandleFunc("/", FileHandler)
 	http.HandleFunc("/_log", LogHandler)
 	log.Printf("Listening on %s", *address)

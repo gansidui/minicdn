@@ -178,7 +178,7 @@ func InitPeer() (err error) {
 	// send queue
 	go func() {
 		for msg := range sendc {
-			log.Println("Send msg:", msg)
+			//log.Println("Send msg:", msg)
 			if msg["action"] == nil {
 				msg["action"] = "LOG"
 			}
