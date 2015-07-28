@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 
 	"github.com/codeskyblue/groupcache"
 	"github.com/gorilla/websocket"
@@ -84,5 +83,3 @@ func (sm *PeerGroup) BroadcastJSON(v interface{}) error {
 	}
 	return nil
 }
-
-
