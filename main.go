@@ -76,8 +76,12 @@ func FileHandler(w http.ResponseWriter, r *http.Request) {
 	headerType := r.Header.Get("X-Minicdn-Type")
 	if headerType == "json" {
 		var data interface{}
-		if err := json.Unmarshal([]byte(headerData), &data); err == nil {
+		err := json.Unmarshal([]byte(headerData), &data)
+		if err == nil {
 			sendData["header_data"] = data
+			sendData["header_type"] = headerType
+		} else {
+			log.Println("header data decode:", err)
 		}
 	} else {
 		sendData["header_data"] = headerData
