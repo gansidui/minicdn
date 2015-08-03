@@ -64,14 +64,10 @@ func (sm *PeerGroup) PeekPeer() (string, error) {
 	sm.RLock()
 	defer sm.RUnlock()
 	ridx := rand.Int()
-	keys := []string{}
-	for key, _ := range sm.m {
-		keys = append(keys, key)
-	}
-	if len(keys) == 0 {
+	if len(sm.m) == 0 {
 		return "", errors.New("Peer count zero")
 	}
-	return keys[ridx%len(keys)], nil
+	return keys[ridx%len(sm.m)], nil
 }
 
 func (sm *PeerGroup) BroadcastJSON(v interface{}) error {
